@@ -387,14 +387,14 @@ class VLADLayer(object):
             borrow=True
         )
         conved = conv2d(input, self.W,
-						input_shape=input_shape,
-						filter_shape=filter_shape)
+			input_shape=input_shape,
+			filter_shape=filter_shape)
 
         conved = T.tanh(conved + self.b.dimshuffle('x', 0, 'x', 'x'))
         rc = conved.reshape((self.B, self.K, self.N))
-        a = T.set_subtensor(rc[self.B-1], softmax2d(rc[self.B-1]))
+        a = theano.shared(numpy.zeros((self.B, self.K, self.N), dtype=theano.config.floatX))
 
-        for i in range(self.B-1):
+        for i in range(self.B):
             a = T.set_subtensor(a[i], softmax2d(rc[i]))
 
         x = input.reshape((self.B, self.D, self.N))

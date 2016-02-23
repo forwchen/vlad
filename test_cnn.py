@@ -209,9 +209,10 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
 
             iter = (epoch - 1) * n_train_batches + minibatch_index
 
+            cost_ij = train_model(minibatch_index)
             if iter % 100 == 0:
                 print 'training @ iter = ', iter
-            cost_ij = train_model(minibatch_index)
+                print cost_ij
 
             if (iter + 1) % validation_frequency == 0:
 
@@ -445,9 +446,17 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
 
             iter = (epoch - 1) * n_train_batches + minibatch_index
 
-            if iter % 100 == 0:
-                print 'training @ iter = ', iter
             cost_ij = train_model(minibatch_index)
+            if iter > 30000:
+                exit()
+
+            #if iter % 100 == 0:
+            #    print 'training @ iter = ', iter
+            
+            if iter > 7000:
+                print cost_ij
+                for pi in params:
+                    print pi.get_value(), pi.get_value().shape
 
             if (iter + 1) % validation_frequency == 0:
 
@@ -498,4 +507,4 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
 
 
 if __name__ == '__main__':
-    evaluate_lenet5()
+    evaluate_vlad()
