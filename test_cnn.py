@@ -402,7 +402,7 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
     #    for param_i, grad_i in zip(params, grads)
     #]
 
-    updates = lasagne.updates.adamax(cost, params, 0.003)
+    updates = lasagne.updates.sgd(cost, params, 0.001)
 
     train_model = theano.function(
         [index],
@@ -426,7 +426,7 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
     improvement_threshold = 0.995  # a relative improvement of this much is
                                    # considered significant
     #validation_frequency = min(n_train_batches, patience / 2)
-    validation_frequency = 1500
+    validation_frequency = 500
                                   # go through this many
                                   # minibatche before checking the network
                                   # on the validation set; in this case we
@@ -447,16 +447,14 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
             iter = (epoch - 1) * n_train_batches + minibatch_index
 
             cost_ij = train_model(minibatch_index)
-            if iter > 30000:
-                exit()
 
-            #if iter % 100 == 0:
-            #    print 'training @ iter = ', iter
+            if iter % 100 == 0:
+                print 'training @ iter = ', iter
             
-            if iter > 7000:
-                print cost_ij
-                for pi in params:
-                    print pi.get_value(), pi.get_value().shape
+            #if iter > 7000:
+            #    print cost_ij
+            #    for pi in params:
+            #        print pi.get_value(), pi.get_value().shape
 
             if (iter + 1) % validation_frequency == 0:
 
