@@ -407,7 +407,7 @@ class VLADLayer(object):
                 cr = T.tile(self.c[k], (self.N,1)).T
                 v = T.set_subtensor(v[b,k,:], normalize((ar*(x[b]+cr)).sum(1)))
 
-        #v = v/T.sqrt((v**2).sum()) #whole normalize
+        v = v/T.sqrt((v**2).sum()) #whole normalize
         self.output = v
         self.params = [self.W, self.b, self.c]
         self.l2 = (self.W**2).sum() + (self.c**2).sum()

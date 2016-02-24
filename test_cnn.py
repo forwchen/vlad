@@ -402,7 +402,7 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
     #    for param_i, grad_i in zip(params, grads)
     #]
 
-    updates = lasagne.updates.sgd(cost, params, 0.001)
+    updates = lasagne.updates.sgd(cost, params, 0.1)
 
     train_model = theano.function(
         [index],
@@ -451,10 +451,12 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
             if iter % 100 == 0:
                 print 'training @ iter = ', iter
             
-            #if iter > 7000:
-            #    print cost_ij
-            #    for pi in params:
-            #        print pi.get_value(), pi.get_value().shape
+            if iter < 0:
+                if iter > 3000:
+                    exit()
+                print cost_ij
+                for pi in params:
+                    print pi.get_value(), pi.get_value().shape
 
             if (iter + 1) % validation_frequency == 0:
 
