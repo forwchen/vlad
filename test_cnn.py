@@ -34,6 +34,9 @@ from layers import *
 from load_data import load_data
 
 import lasagne
+import joblib
+from collections import *
+
 
 def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
                     dataset='mnist.pkl.gz',
@@ -260,6 +263,18 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
                           os.path.split(__file__)[1] +
                           ' ran for %.2fm' % ((end_time - start_time) / 60.))
 
+    print('Saving model')
+    saved_params = OrderedDict()
+
+    saved_params['conv1'] = [layer0.params[0].get_value(), layer0.params[1].get_value()]
+    saved_params['conv2'] = [layer1.params[0].get_value(), layer1.params[1].get_value()]
+    saved_params['fc1'] = [layer2.params[0].get_value(), layer2.params[1].get_value()]
+    saved_params['log1'] = [layer3.params[0].get_value(), layer3.params[1].get_value()]
+
+    joblib.dump(saved_params, 'lenet5_params.pkl')
+
+
+
 def evaluate_vlad(learning_rate=0.01, n_epochs=200,
                     dataset='mnist.pkl.gz',
                     nkerns=[20, 50], batch_size=10):
@@ -387,7 +402,7 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
     params = layer4.params + layer3.params + layer2.params + layer1.params + layer0.params
     #cost += layer4.l2 + layer3.l2 + layer2.l2 + layer1.l2 + layer0.l2
 
-    
+
 
     # create a list of gradients for all model parameters
     #grads = T.grad(cost, params)
@@ -450,7 +465,7 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
 
             if iter % 100 == 0:
                 print 'training @ iter = ', iter
-            
+
             if iter < 0:
                 if iter > 3000:
                     exit()
@@ -507,4 +522,4 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
 
 
 if __name__ == '__main__':
-    evaluate_vlad()
+    evaluate_lenet5()
