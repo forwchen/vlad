@@ -98,7 +98,7 @@ class LogisticRegression(object):
         # LP[n-1,y[n-1]]] and T.mean(LP[T.arange(y.shape[0]),y]) is
         # the mean (across minibatch examples) of the elements in v,
         # i.e., the mean log-likelihood across the minibatch.
-        return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
+        return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), T.cast(y, 'int32')])
         # end-snippet-2
 
     def errors(self, y):
@@ -118,10 +118,10 @@ class LogisticRegression(object):
                 ('y', y.type, 'y_pred', self.y_pred.type)
             )
         # check if y is of the correct datatype
-        if y.dtype.startswith('int'):
+        if y.dtype.startswith('float'):
             # the T.neq operator returns a vector of 0s and 1s, where 1
             # represents a mistake in prediction
-            return T.mean(T.neq(self.y_pred, y))
+            return T.mean(T.cast(T.neq(self.y_pred, y), theano.config.floatX))
         else:
             raise NotImplementedError()
 
@@ -252,7 +252,7 @@ class Conv2DLayer(object):
         # convolve input feature maps with filters
         conv_out = conv2d(
             input=input,
-            input_shape=input_shape,
+            image_shape=input_shape,
             filters=self.W,
             filter_shape=filter_shape
         )
@@ -322,7 +322,7 @@ class ConvPoolLayer(object):
         # convolve input feature maps with filters
         conv_out = conv2d(
             input=input,
-            input_shape=input_shape,
+            image_shape=input_shape,
             filters=self.W,
             filter_shape=filter_shape
         )
@@ -387,7 +387,7 @@ class VLADLayer(object):
             borrow=True
         )
         conved = conv2d(input, self.W,
-			input_shape=input_shape,
+			image_shape=input_shape,
 			filter_shape=filter_shape)
 
         conved = T.tanh(conved + self.b.dimshuffle('x', 0, 'x', 'x'))
@@ -403,11 +403,11 @@ class VLADLayer(object):
 
         for b in range(self.B):
             for k in range(self.K):
-                ar = T.tile(a[b,k], (self.D,1))
-                cr = T.tile(self.c[k], (self.N,1)).T
+                ar = T.tile(a[b,k].reshape((1, self.N)), (self.D,1))
+                cr = T.tile(self.c[k].reshape((1, self.D)), (self.N,1)).T
                 v = T.set_subtensor(v[b,k,:], normalize((ar*(x[b]+cr)).sum(1)))
 
-        v = v/T.sqrt((v**2).sum()) #whole normalize
+        #v = v/T.sqrt((v**2).sum()) #whole normalize
         self.output = v
         self.params = [self.W, self.b, self.c]
         self.l2 = (self.W**2).sum() + (self.c**2).sum()

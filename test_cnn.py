@@ -33,8 +33,6 @@ import theano.tensor as T
 from layers import *
 from load_data import load_data
 
-import lasagne
-
 def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
                     dataset='mnist.pkl.gz',
                     nkerns=[20, 50], batch_size=500):
@@ -75,7 +73,7 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
 
     # start-snippet-1
     x = T.matrix('x')   # the data is presented as rasterized images
-    y = T.ivector('y')  # the labels are presented as 1D vector of
+    y = T.vector('y')  # the labels are presented as 1D vector of
                         # [int] labels
 
     ######################
@@ -300,7 +298,7 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
 
     # start-snippet-1
     x = T.matrix('x')   # the data is presented as rasterized images
-    y = T.ivector('y')  # the labels are presented as 1D vector of
+    y = T.vector('y')  # the labels are presented as 1D vector of
                         # [int] labels
 
     ######################
@@ -390,19 +388,20 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
     
 
     # create a list of gradients for all model parameters
-    #grads = T.grad(cost, params)
+    grads = T.grad(cost, params)
 
     # train_model is a function that updates the model parameters by
     # SGD Since this model has many parameters, it would be tedious to
     # manually create an update rule for each model parameter. We thus
     # create the updates list by automatically looping over all
     # (params[i], grads[i]) pairs.
-    #updates = [
-    #    (param_i, param_i - learning_rate * grad_i)
-    #    for param_i, grad_i in zip(params, grads)
-    #]
+    updates = [
+        (param_i, param_i - learning_rate * grad_i)
+        for param_i, grad_i in zip(params, grads)
+    ]
 
-    updates = lasagne.updates.sgd(cost, params, 0.1)
+    #updates = lasagne.updates.sgd(cost, params, 0.01)
+
 
     train_model = theano.function(
         [index],
