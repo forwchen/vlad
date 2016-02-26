@@ -4,7 +4,6 @@ import theano.tensor as T
 from theano.tensor.signal import downsample
 from theano.tensor.nnet import conv2d
 
-
 class LogisticRegression(object):
     """Multi-class Logistic Regression Class
 
@@ -68,6 +67,10 @@ class LogisticRegression(object):
         # parameters of the model
         self.params = [self.W, self.b]
         self.l2 = (self.W**2).sum()
+
+    def load_params(self, params):
+        self.W.set_value(params[0])
+        self.b.set_value(params[1])
 
     def negative_log_likelihood(self, y):
         """Return the mean of the negative log-likelihood of the prediction
@@ -199,6 +202,10 @@ class HiddenLayer(object):
         self.params = [self.W, self.b]
         self.l2 = (self.W**2).sum()
 
+    def load_params(self, params):
+        self.W.set_value(params[0])
+        self.b.set_value(params[1])
+
 
 class Conv2DLayer(object):
     """Conv2D Layer of a convolutional network """
@@ -268,6 +275,9 @@ class Conv2DLayer(object):
         self.params = [self.W, self.b]
         self.l2 = (self.W**2).sum()
 
+    def load_params(self, params):
+        self.W.set_value(params[0])
+        self.b.set_value(params[1])
 
 class ConvPoolLayer(object):
     """Pool Layer of a convolutional network """
@@ -343,6 +353,12 @@ class ConvPoolLayer(object):
         # store parameters of this layer
         self.params = [self.W, self.b]
         self.l2 = (self.W**2).sum()
+
+
+    def load_params(self, params):
+        self.W.set_value(params[0])
+        self.b.set_value(params[1])
+
 
 def softmax2d(x):
     return (T.exp(x) / T.exp(x).T.sum(-1))
