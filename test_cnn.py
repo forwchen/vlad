@@ -466,13 +466,6 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
             if iter % 100 == 0:
                 print 'training @ iter = ', iter
 
-            if iter < 0:
-                if iter > 3000:
-                    exit()
-                print cost_ij
-                for pi in params:
-                    print pi.get_value(), pi.get_value().shape
-
             if (iter + 1) % validation_frequency == 0:
 
                 # compute zero-one loss on validation set
@@ -522,4 +515,4 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
 
 
 if __name__ == '__main__':
-    evaluate_lenet5()
+    evaluate_vlad()
