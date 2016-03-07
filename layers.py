@@ -392,8 +392,8 @@ class VLADLayer(object):
             ),
             borrow=True
         )
-        #b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        #self.b = theano.shared(value=b_values, borrow=True)
+        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+        self.b = theano.shared(value=b_values, borrow=True)
 
         c_bound = numpy.sqrt(1. / (self.K * self.D))
         self.c = theano.shared(
@@ -407,7 +407,7 @@ class VLADLayer(object):
 			image_shape=input_shape,
 			filter_shape=filter_shape)
 
-        #conved = T.tanh(conved + self.b.dimshuffle('x', 0, 'x', 'x'))
+        conved = conved + self.b.dimshuffle('x', 0, 'x', 'x')
         rc = conved.reshape((self.B, self.K, self.N))
         a = theano.shared(numpy.zeros((self.B, self.K, self.N), dtype=theano.config.floatX))
 
@@ -426,6 +426,6 @@ class VLADLayer(object):
 
         #v = v/T.sqrt((v**2).sum()) #whole normalize
         self.output = v
-        self.params = [self.W, self.c]
+        self.params = [self.W, self.b, self.c]
         self.l2 = (self.W**2).sum() + (self.c**2).sum()
 
