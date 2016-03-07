@@ -341,39 +341,41 @@ def evaluate_vlad(learning_rate=0.01, n_epochs=200,
 
     # Construct the second convolutional layer
     # filtering reduces the image size to (12-5+1, 12-5+1) = (8, 8)
-    # 4D output tensor is thus of shape (batch_size, nkerns[1], 8, 8)
-    layer1 = Conv2DLayer(
+    # maxpooling reduces this further to (8/2, 8/2) = (4, 4)
+    # 4D output tensor is thus of shape (batch_size, nkerns[1], 4, 4)
+
+    layer1 = ConvPoolLayer(
         rng,
         input=layer0.output,
         input_shape=(batch_size, nkerns[0], 12, 12),
         filter_shape=(nkerns[1], nkerns[0], 5, 5),
+        poolsize=(2, 2)
     )
 
     layer2 = VLADLayer(
         rng,
         input=layer1.output,
-        num_filters=16,
-        input_shape=(batch_size, nkerns[1], 8, 8)
+        num_filters=8,
+        input_shape=(batch_size, nkerns[1], 4, 4)
     )
 
     # the HiddenLayer being fully-connected, it operates on 2D matrices of
     # shape (batch_size, num_pixels) (i.e matrix of rasterized images).
 
     # VLADLayer will generate a 3D tensor of shape (batch_size, num_filters, nkerns[1])
-    # or (500, 16, 50) = (500, 800) with the default values.
+    # or (500, 8, 50) = (500, 400) with the default values.
     layer3_input = layer2.output.flatten(2)
 
     # construct a fully-connected sigmoidal layer
     layer3 = HiddenLayer(
         rng,
         input=layer3_input,
-        n_in=16*nkerns[1],
-        n_out=500,
-        activation=T.tanh
+        n_in=400,
+        n_out=100,
     )
 
     # classify the values of the fully-connected sigmoidal layer
-    layer4 = LogisticRegression(input=layer3.output, n_in=500, n_out=10)
+    layer4 = LogisticRegression(input=layer3.output, n_in=100, n_out=10)
 
     # the cost we minimize during training is the NLL of the model
     cost = layer4.negative_log_likelihood(y)

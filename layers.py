@@ -131,7 +131,7 @@ class LogisticRegression(object):
 
 class HiddenLayer(object):
     def __init__(self, rng, input, n_in, n_out, W=None, b=None,
-                 activation=T.tanh):
+                 activation=T.nnet.relu):
         """
         Typical hidden layer of a MLP: units are fully-connected and have
         sigmoidal activation function. Weight matrix W is of shape (n_in,n_out)
@@ -269,7 +269,7 @@ class Conv2DLayer(object):
         # reshape it to a tensor of shape (1, n_filters, 1, 1). Each bias will
         # thus be broadcasted across mini-batches and feature map
         # width & height
-        self.output = T.tanh(conv_out + self.b.dimshuffle('x', 0, 'x', 'x'))
+        self.output = T.nnet.relu(conv_out + self.b.dimshuffle('x', 0, 'x', 'x'))
 
         # store parameters of this layer
         self.params = [self.W, self.b]
@@ -348,7 +348,7 @@ class ConvPoolLayer(object):
         # reshape it to a tensor of shape (1, n_filters, 1, 1). Each bias will
         # thus be broadcasted across mini-batches and feature map
         # width & height
-        self.output = T.tanh(pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
+        self.output = T.nnet.relu(pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
 
         # store parameters of this layer
         self.params = [self.W, self.b]
@@ -361,10 +361,11 @@ class ConvPoolLayer(object):
 
 
 def softmax2d(x):
-    return (T.exp(x) / T.exp(x).T.sum(-1))
+    c = T.max(x, 0)
+    return (T.exp(x-c) / T.exp(x-c).T.sum(-1))
 
 def normalize(x):
-    return T.basic.pow( T.basic.pow( T.basic.abs_(x), 2 ) , 1.0/2)
+    return x/T.sqrt((x**2).sum() + 1e-12)
 
 
 class VLADLayer(object):
@@ -391,8 +392,8 @@ class VLADLayer(object):
             ),
             borrow=True
         )
-        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        self.b = theano.shared(value=b_values, borrow=True)
+        #b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+        #self.b = theano.shared(value=b_values, borrow=True)
 
         c_bound = numpy.sqrt(1. / (self.K * self.D))
         self.c = theano.shared(
@@ -406,7 +407,7 @@ class VLADLayer(object):
 			image_shape=input_shape,
 			filter_shape=filter_shape)
 
-        conved = T.tanh(conved + self.b.dimshuffle('x', 0, 'x', 'x'))
+        #conved = T.tanh(conved + self.b.dimshuffle('x', 0, 'x', 'x'))
         rc = conved.reshape((self.B, self.K, self.N))
         a = theano.shared(numpy.zeros((self.B, self.K, self.N), dtype=theano.config.floatX))
 
@@ -425,6 +426,6 @@ class VLADLayer(object):
 
         #v = v/T.sqrt((v**2).sum()) #whole normalize
         self.output = v
-        self.params = [self.W, self.b, self.c]
+        self.params = [self.W, self.c]
         self.l2 = (self.W**2).sum() + (self.c**2).sum()
 
