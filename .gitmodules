@@ -1,0 +1,3 @@
+[submodule "Theano"]
+	path = Theano
+	url = https://github.com/Theano/Theano
