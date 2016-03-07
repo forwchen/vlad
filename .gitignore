@@ -4,3 +4,4 @@ model
 *.pyc
 *.txt
 *.npy
+*.pkl
