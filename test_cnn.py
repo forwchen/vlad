@@ -442,8 +442,8 @@ def evaluate_vlad(learning_rate=0.02, n_epochs=200,
                            # found
     improvement_threshold = 0.995  # a relative improvement of this much is
                                    # considered significant
-    #validation_frequency = min(n_train_batches, patience / 2)
-    validation_frequency = 500
+    validation_frequency = min(n_train_batches, patience / 2)
+    #validation_frequency = 500
                                   # go through this many
                                   # minibatche before checking the network
                                   # on the validation set; in this case we
@@ -501,9 +501,9 @@ def evaluate_vlad(learning_rate=0.02, n_epochs=200,
                           (epoch, minibatch_index + 1, n_train_batches,
                            test_score * 100.))
 
-            if patience <= iter:
-                done_looping = True
-                break
+            #if patience <= iter:
+            #    done_looping = True
+            #    break
 
     end_time = time.clock()
     print('Optimization complete.')

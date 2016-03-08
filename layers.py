@@ -364,6 +364,10 @@ def softmax2d(x):
     c = T.max(x, 0)
     return (T.exp(x-c) / T.exp(x-c).T.sum(-1))
 
+def softmax3d(x):
+    y = x - T.max(x, 1).dimshuffle(0, 'x', 1)
+    return T.exp(y)/T.exp(y).sum(1).dimshuffle(0,'x',1)
+
 def normalize(x):
     return x/T.sqrt((x**2).sum() + 1e-12)
 
@@ -409,23 +413,31 @@ class VLADLayer(object):
 
         conved = conved + self.b.dimshuffle('x', 0, 'x', 'x')
         rc = conved.reshape((self.B, self.K, self.N))
-        a = theano.shared(numpy.zeros((self.B, self.K, self.N), dtype=theano.config.floatX))
+        # a = theano.shared(numpy.zeros((self.B, self.K, self.N), dtype=theano.config.floatX))
 
-        for i in range(self.B):
-            a = T.set_subtensor(a[i], softmax2d(rc[i]))
+        # for i in range(self.B):
+            # a = T.set_subtensor(a[i], softmax2d(rc[i]))
+        a = softmax3d(rc)
 
         x = input.reshape((self.B, self.D, self.N))
 
         v = theano.shared(numpy.zeros((self.B, self.K, self.D), dtype=theano.config.floatX))
 
-        for b in range(self.B):
-            for k in range(self.K):
-                ar = T.tile(a[b,k].reshape((1, self.N)), (self.D,1))
-                cr = T.tile(self.c[k].reshape((1, self.D)), (self.N,1)).T
-                v = T.set_subtensor(v[b,k,:], normalize((ar*(x[b]+cr)).sum(1)))
+        #for b in range(self.B):
+        #    for k in range(self.K):
+        #        ar = T.tile(a[b,k].reshape((1, self.N)), (self.D,1))
+        #        cr = T.tile(self.c[k].reshape((1, self.D)), (self.N,1)).T
+        #        v = T.set_subtensor(v[b,k,:], normalize((ar*(x[b]+cr)).sum(1)))
+
+        for k in range(self.K):
+            ar = T.tile(a[:,k], (1,self.D)).reshape((self.B, self.D, self.N))
+            cr = T.tile(self.c[k].reshape((1,self.D,1)), (self.B, 1, self.N))
+            vr = (ar*(x+cr)).sum(2)
+            g = T.sqrt((vr**2).sum(1))
+            v= T.set_subtensor(v[:,k,:], vr/T.tile(g.reshape((self.B, 1)), (1, self.D)))
+
 
         #v = v/T.sqrt((v**2).sum()) #whole normalize
         self.output = v
         self.params = [self.W, self.b, self.c]
         self.l2 = (self.W**2).sum() + (self.c**2).sum()
-
