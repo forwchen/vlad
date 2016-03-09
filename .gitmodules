@@ -1,3 +1,6 @@
 [submodule "Theano"]
 	path = Theano
 	url = https://github.com/Theano/Theano
+[submodule "Lasagne"]
+	path = Lasagne
+	url = https://github.com/Lasagne/Lasagne
