@@ -6,4 +6,4 @@ And their presentation: [http://www.di.ens.fr/willow/research/netvlad/NetVLAD.pd
 
 Original MATLAB implementation: [https://github.com/Relja/netvlad]()
 
-Currently this code works with Theano 0.7.1a1.
+Currently this code works with Theano 0.7.1a1 and Lasagne v0.1.
