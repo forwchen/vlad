@@ -101,7 +101,7 @@ class LogisticRegression(object):
         # LP[n-1,y[n-1]]] and T.mean(LP[T.arange(y.shape[0]),y]) is
         # the mean (across minibatch examples) of the elements in v,
         # i.e., the mean log-likelihood across the minibatch.
-        return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), T.cast(y, 'int32')])
+        return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
         # end-snippet-2
 
     def errors(self, y):
@@ -121,7 +121,7 @@ class LogisticRegression(object):
                 ('y', y.type, 'y_pred', self.y_pred.type)
             )
         # check if y is of the correct datatype
-        if y.dtype.startswith('float'):
+        if y.dtype.startswith('int'):
             # the T.neq operator returns a vector of 0s and 1s, where 1
             # represents a mistake in prediction
             return T.mean(T.cast(T.neq(self.y_pred, y), theano.config.floatX))
@@ -412,22 +412,12 @@ class VLADLayer(object):
 			filter_shape=filter_shape)
 
         conved = conved + self.b.dimshuffle('x', 0, 'x', 'x')
-        rc = conved.reshape((self.B, self.K, self.N))
-        # a = theano.shared(numpy.zeros((self.B, self.K, self.N), dtype=theano.config.floatX))
-
-        # for i in range(self.B):
-            # a = T.set_subtensor(a[i], softmax2d(rc[i]))
-        a = softmax3d(rc)
+        conved = conved.reshape((self.B, self.K, self.N))
+        a = softmax3d(conved)
 
         x = input.reshape((self.B, self.D, self.N))
 
         v = theano.shared(numpy.zeros((self.B, self.K, self.D), dtype=theano.config.floatX))
-
-        #for b in range(self.B):
-        #    for k in range(self.K):
-        #        ar = T.tile(a[b,k].reshape((1, self.N)), (self.D,1))
-        #        cr = T.tile(self.c[k].reshape((1, self.D)), (self.N,1)).T
-        #        v = T.set_subtensor(v[b,k,:], normalize((ar*(x[b]+cr)).sum(1)))
 
         for k in range(self.K):
             ar = T.tile(a[:,k], (1,self.D)).reshape((self.B, self.D, self.N))

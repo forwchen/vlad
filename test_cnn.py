@@ -1,26 +1,3 @@
-"""This tutorial introduces the LeNet5 neural network architecture
-using Theano.  LeNet5 is a convolutional neural network, good for
-classifying images. This tutorial shows how to build the architecture,
-and comes with all the hyper-parameters you need to reproduce the
-paper's MNIST results.
-
-
-This implementation simplifies the model in the following ways:
-
- - LeNetConvPool doesn't implement location-specific gain and bias parameters
- - LeNetConvPool doesn't implement pooling by average, it implements pooling
-   by max.
- - Digit classification is implemented with a logistic regression rather than
-   an RBF network
- - LeNet5 was not fully-connected convolutions at second layer
-
-References:
- - Y. LeCun, L. Bottou, Y. Bengio and P. Haffner:
-   Gradient-Based Learning Applied to Document
-   Recognition, Proceedings of the IEEE, 86(11):2278-2324, November 1998.
-   http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf
-
-"""
 import os
 import sys
 import time
@@ -36,6 +13,7 @@ from load_data import load_data
 import joblib
 from collections import *
 
+import lasagne
 
 def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
                     dataset='mnist.pkl.gz',
@@ -274,10 +252,10 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
 
 
 
-def evaluate_vlad(learning_rate=0.02, n_epochs=200,
+def evaluate_vlad(learning_rate=0.5, n_epochs=200,
                     dataset='mnist.pkl.gz',
-                    nkerns=[20, 50], batch_size=10):
-    """ Demonstrates lenet on MNIST dataset
+                    nkerns=[20, 50], batch_size=500):
+    """ Demonstrates vlad layer on MNIST dataset
 
     :type learning_rate: float
     :param learning_rate: learning rate used (factor for the stochastic
@@ -314,7 +292,7 @@ def evaluate_vlad(learning_rate=0.02, n_epochs=200,
 
     # start-snippet-1
     x = T.matrix('x')   # the data is presented as rasterized images
-    y = T.vector('y')  # the labels are presented as 1D vector of
+    y = T.ivector('y')  # the labels are presented as 1D vector of
                         # [int] labels
 
     ######################
@@ -339,11 +317,10 @@ def evaluate_vlad(learning_rate=0.02, n_epochs=200,
         poolsize=(2, 2)
     )
 
-    # Construct the second convolutional layer
+    # Construct the second convolutional pooling layer
     # filtering reduces the image size to (12-5+1, 12-5+1) = (8, 8)
     # maxpooling reduces this further to (8/2, 8/2) = (4, 4)
     # 4D output tensor is thus of shape (batch_size, nkerns[1], 4, 4)
-
     layer1 = ConvPoolLayer(
         rng,
         input=layer0.output,
@@ -352,6 +329,8 @@ def evaluate_vlad(learning_rate=0.02, n_epochs=200,
         poolsize=(2, 2)
     )
 
+    # VLADLayer will generate a 3D tensor of shape (batch_size, num_filters, nkerns[1])
+    # or (500, 8, 50) = (500, 400) with the default values.
     layer2 = VLADLayer(
         rng,
         input=layer1.output,
@@ -359,23 +338,19 @@ def evaluate_vlad(learning_rate=0.02, n_epochs=200,
         input_shape=(batch_size, nkerns[1], 4, 4)
     )
 
-    # the HiddenLayer being fully-connected, it operates on 2D matrices of
-    # shape (batch_size, num_pixels) (i.e matrix of rasterized images).
-
-    # VLADLayer will generate a 3D tensor of shape (batch_size, num_filters, nkerns[1])
-    # or (500, 8, 50) = (500, 400) with the default values.
     layer3_input = layer2.output.flatten(2)
 
-    # construct a fully-connected sigmoidal layer
+    # the HiddenLayer being fully-connected, it operates on 2D matrices of
+    # shape (batch_size, num_pixels) (i.e matrix of rasterized images).
     layer3 = HiddenLayer(
         rng,
         input=layer3_input,
         n_in=400,
-        n_out=100,
+        n_out=256,
     )
 
     # classify the values of the fully-connected sigmoidal layer
-    layer4 = LogisticRegression(input=layer3.output, n_in=100, n_out=10)
+    layer4 = LogisticRegression(input=layer3.output, n_in=256, n_out=10)
 
     # the cost we minimize during training is the NLL of the model
     cost = layer4.negative_log_likelihood(y)
@@ -401,25 +376,17 @@ def evaluate_vlad(learning_rate=0.02, n_epochs=200,
 
     # create a list of all model parameters to be fit by gradient descent
     params = layer4.params + layer3.params + layer2.params + layer1.params + layer0.params
-    #cost += layer4.l2 + layer3.l2 + layer2.l2 + layer1.l2 + layer0.l2
-
-
 
     # create a list of gradients for all model parameters
     grads = T.grad(cost, params)
 
-    # train_model is a function that updates the model parameters by
-    # SGD Since this model has many parameters, it would be tedious to
-    # manually create an update rule for each model parameter. We thus
-    # create the updates list by automatically looping over all
-    # (params[i], grads[i]) pairs.
-    updates = [
-        (param_i, param_i - learning_rate * grad_i)
-        for param_i, grad_i in zip(params, grads)
-    ]
+    #updates = [
+    #    (param_i, param_i - learning_rate * grad_i)
+    #    for param_i, grad_i in zip(params, grads)
+    #]
 
-    #updates = lasagne.updates.sgd(cost, params, 0.01)
-
+    # updates = lasagne.updates.rmsprop(grads, params, 0.01)
+    updates = lasagne.updates.adam(grads, params, 0.01)
 
     train_model = theano.function(
         [index],
@@ -444,10 +411,6 @@ def evaluate_vlad(learning_rate=0.02, n_epochs=200,
                                    # considered significant
     validation_frequency = min(n_train_batches, patience / 2)
     #validation_frequency = 500
-                                  # go through this many
-                                  # minibatche before checking the network
-                                  # on the validation set; in this case we
-                                  # check every epoch
 
     best_validation_loss = numpy.inf
     best_iter = 0
@@ -501,9 +464,9 @@ def evaluate_vlad(learning_rate=0.02, n_epochs=200,
                           (epoch, minibatch_index + 1, n_train_batches,
                            test_score * 100.))
 
-            #if patience <= iter:
-            #    done_looping = True
-            #    break
+            if patience <= iter:
+                done_looping = True
+                break
 
     end_time = time.clock()
     print('Optimization complete.')
