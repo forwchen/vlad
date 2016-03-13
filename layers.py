@@ -207,78 +207,6 @@ class HiddenLayer(object):
         self.b.set_value(params[1])
 
 
-class Conv2DLayer(object):
-    """Conv2D Layer of a convolutional network """
-
-    def __init__(self, rng, input, filter_shape, input_shape):
-        """
-        Allocate a Conv2DLayer with shared variable internal parameters.
-
-        :type rng: numpy.random.RandomState
-        :param rng: a random number generator used to initialize weights
-
-        :type input: theano.tensor.dtensor4
-        :param input: symbolic image tensor, of shape input_shape
-
-        :type filter_shape: tuple or list of length 4
-        :param filter_shape: (number of filters, num input feature maps,
-                              filter height, filter width)
-
-        :type input_shape: tuple or list of length 4
-        :param input_shape: (batch size, num input feature maps,
-                             image height, image width)
-
-        :type poolsize: tuple or list of length 2
-        :param poolsize: the downsampling (pooling) factor (#rows, #cols)
-        """
-
-        assert input_shape[1] == filter_shape[1]
-        self.input = input
-
-        # there are "num input feature maps * filter height * filter width"
-        # inputs to each hidden unit
-        fan_in = numpy.prod(filter_shape[1:])
-        # each unit in the lower layer receives a gradient from:
-        # "num output feature maps * filter height * filter width" /
-        #   pooling size
-        fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]))
-        # initialize weights with random weights
-        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
-        self.W = theano.shared(
-            numpy.asarray(
-                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow=True
-        )
-
-        # the bias is a 1D tensor -- one bias per output feature map
-        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        self.b = theano.shared(value=b_values, borrow=True)
-
-        # convolve input feature maps with filters
-        conv_out = conv2d(
-            input=input,
-            image_shape=input_shape,
-            filters=self.W,
-            filter_shape=filter_shape
-        )
-
-
-        # add the bias term. Since the bias is a vector (1D array), we first
-        # reshape it to a tensor of shape (1, n_filters, 1, 1). Each bias will
-        # thus be broadcasted across mini-batches and feature map
-        # width & height
-        self.output = T.nnet.relu(conv_out + self.b.dimshuffle('x', 0, 'x', 'x'))
-
-        # store parameters of this layer
-        self.params = [self.W, self.b]
-        self.l2 = (self.W**2).sum()
-
-    def load_params(self, params):
-        self.W.set_value(params[0])
-        self.b.set_value(params[1])
-
 class ConvPoolLayer(object):
     """Pool Layer of a convolutional network """
 
@@ -332,7 +260,7 @@ class ConvPoolLayer(object):
         # convolve input feature maps with filters
         conv_out = conv2d(
             input=input,
-            image_shape=input_shape,
+            input_shape=input_shape,
             filters=self.W,
             filter_shape=filter_shape
         )
@@ -358,18 +286,6 @@ class ConvPoolLayer(object):
     def load_params(self, params):
         self.W.set_value(params[0])
         self.b.set_value(params[1])
-
-
-def softmax2d(x):
-    c = T.max(x, 0)
-    return (T.exp(x-c) / T.exp(x-c).T.sum(-1))
-
-def softmax3d(x):
-    y = x - T.max(x, 1).dimshuffle(0, 'x', 1)
-    return T.exp(y)/T.exp(y).sum(1).dimshuffle(0,'x',1)
-
-def normalize(x):
-    return x/T.sqrt((x**2).sum() + 1e-12)
 
 
 class VLADLayer(object):
@@ -408,12 +324,12 @@ class VLADLayer(object):
             borrow=True
         )
         conved = conv2d(input, self.W,
-			image_shape=input_shape,
+            input_shape=input_shape,
 			filter_shape=filter_shape)
 
         conved = conved + self.b.dimshuffle('x', 0, 'x', 'x')
         conved = conved.reshape((self.B, self.K, self.N))
-        a = softmax3d(conved)
+        a = self.softmax3d(conved)
 
         x = input.reshape((self.B, self.D, self.N))
 
@@ -423,11 +339,21 @@ class VLADLayer(object):
             ar = T.tile(a[:,k], (1,self.D)).reshape((self.B, self.D, self.N))
             cr = T.tile(self.c[k].reshape((1,self.D,1)), (self.B, 1, self.N))
             vr = (ar*(x+cr)).sum(2)
-            g = T.sqrt((vr**2).sum(1))
-            v= T.set_subtensor(v[:,k,:], vr/T.tile(g.reshape((self.B, 1)), (1, self.D)))
+            g = T.sqrt((vr**2).sum(1))  # add eps?
+            v = T.set_subtensor(v[:,k,:], vr/T.tile(g.reshape((self.B, 1)), (1, self.D)))
 
-
-        #v = v/T.sqrt((v**2).sum()) #whole normalize
+        # v = v/T.sqrt((v**2).sum())  # whole normalize
         self.output = v
         self.params = [self.W, self.b, self.c]
-        self.l2 = (self.W**2).sum() + (self.c**2).sum()
+
+
+    def softmax3d(self, x):
+        y = x - T.max(x, 1).dimshuffle(0, 'x', 1)
+        return T.exp(y)/T.exp(y).sum(1).dimshuffle(0,'x',1)
+
+
+
+
+
+
+

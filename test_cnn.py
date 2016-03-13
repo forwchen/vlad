@@ -380,10 +380,6 @@ def evaluate_vlad(learning_rate=0.5, n_epochs=200,
     # create a list of gradients for all model parameters
     grads = T.grad(cost, params)
 
-    #updates = [
-    #    (param_i, param_i - learning_rate * grad_i)
-    #    for param_i, grad_i in zip(params, grads)
-    #]
 
     # updates = lasagne.updates.rmsprop(grads, params, 0.01)
     updates = lasagne.updates.adam(grads, params, 0.01)
